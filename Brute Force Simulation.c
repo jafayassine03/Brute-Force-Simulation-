@@ -2,48 +2,55 @@
 #include <string.h>
 #include <time.h>
 
-int main() {
-    char password[] = "abc";
-    char attempt[4];
-    int attempts = 0;
-    int total = 26 * 26 * 26; // total combinations
+#define MAX_LEN 6  // max password length
 
-    // Start timing
+void bruteForce(char *target, int length) {
+    char attempt[MAX_LEN + 1];
+    int attempts = 0;
+    long total = 1;
+
+    for (int i = 0; i < length; i++) total *= 26;
+
     clock_t start = clock();
 
-    for (char a = 'a'; a <= 'z'; a++) {
-        for (char b = 'a'; b <= 'z'; b++) {
-            for (char c = 'a'; c <= 'z'; c++) {
-                attempt[0] = a;
-                attempt[1] = b;
-                attempt[2] = c;
-                attempt[3] = '\0';
-                attempts++;
+    for (int i = 0; i < total; i++) {
+        int temp = i;
 
-                // Show progress every 1000 attempts
-                if (attempts % 1000 == 0) {
-                    printf("Progress: %.2f%%\n", (attempts * 100.0) / total);
-                }
+        for (int j = length - 1; j >= 0; j--) {
+            attempt[j] = 'a' + (temp % 26);
+            temp /= 26;
+        }
+        attempt[length] = '\0';
 
-                if (strcmp(attempt, password) == 0) {
-                    clock_t end = clock();
-                    double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+        attempts++;
 
-                    printf("Password found: %s\n", attempt);
-                    printf("Attempts: %d\n", attempts);
-                    printf("Time taken: %.3f seconds\n", time_spent);
-                    return 0;
-                }
-            }
+        if (attempts % 1000 == 0) {
+            printf("Progress: %.2f%%\n", (attempts * 100.0) / total);
+        }
+
+        if (strcmp(attempt, target) == 0) {
+            clock_t end = clock();
+            double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+
+            printf("\nPassword found: %s\n", attempt);
+            printf("Attempts: %d\n", attempts);
+            printf("Time taken: %.3f seconds\n", time_spent);
+            return;
         }
     }
 
-    clock_t end = clock();
-    double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
-
     printf("Password not found\n");
-    printf("Attempts: %d\n", attempts);
-    printf("Time taken: %.3f seconds\n", time_spent);
-    return 0;
 }
 
+int main() {
+    char password[MAX_LEN + 1];
+
+    printf("Enter password (lowercase letters only, max %d): ", MAX_LEN);
+    scanf("%s", password);
+
+    int length = strlen(password);
+
+    bruteForce(password, length);
+
+    return 0;
+}
