@@ -11,7 +11,8 @@ It systematically tries all possible combinations from `aaa` to `zzz` until it f
 * Compares each attempt with a target password
 * Stops immediately when the password is found
 * Displays the number of attempts made
-* ⏱️ Measures execution time
+* Measures and shows execution time
+* Provides real-time progress feedback during execut
 
 ## 🧠 How It Works
 
