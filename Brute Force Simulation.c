@@ -3,10 +3,30 @@
 #include <time.h>
 
 #define MAX_LEN 6
+#define CHECKPOINT_FILE "checkpoint.txt"
+
+long long loadCheckpoint() {
+    FILE *file = fopen(CHECKPOINT_FILE, "r");
+    long long value = 0;
+    if (file) {
+        fscanf(file, "%lld", &value);
+        fclose(file);
+        printf("Resuming from attempt #%lld\n", value);
+    }
+    return value;
+}
+
+void saveCheckpoint(long long value) {
+    FILE *file = fopen(CHECKPOINT_FILE, "w");
+    if (file) {
+        fprintf(file, "%lld", value);
+        fclose(file);
+    }
+}
 
 void bruteForce(char *target, char *charset, int charsetSize) {
     char attempt[MAX_LEN + 1];
-    int attempts = 0;
+    long long attempts = loadCheckpoint();
     long long total = 0;
 
     int targetLen = strlen(target);
@@ -19,11 +39,18 @@ void bruteForce(char *target, char *charset, int charsetSize) {
 
     clock_t start = clock();
 
+    long long currentCount = 0;
+
     for (int len = 1; len <= targetLen; len++) {
         long long limit = 1;
         for (int i = 0; i < len; i++) limit *= charsetSize;
 
         for (long long i = 0; i < limit; i++) {
+            if (currentCount < attempts) {
+                currentCount++;
+                continue;
+            }
+
             long long temp = i;
 
             for (int j = len - 1; j >= 0; j--) {
@@ -33,12 +60,17 @@ void bruteForce(char *target, char *charset, int charsetSize) {
             attempt[len] = '\0';
 
             attempts++;
+            currentCount++;
+
+            // Save checkpoint every 5000 attempts
+            if (attempts % 5000 == 0) {
+                saveCheckpoint(attempts);
+            }
 
             // timing
             clock_t now = clock();
             double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
             double speed = attempts / (elapsed > 0 ? elapsed : 1);
-
             double remaining = (total - attempts) / (speed > 0 ? speed : 1);
 
             if (attempts % 2000 == 0) {
@@ -52,29 +84,14 @@ void bruteForce(char *target, char *charset, int charsetSize) {
 
                 printf("\nPASSWORD FOUND!\n");
                 printf("Password: %s\n", attempt);
-                printf("Attempts: %d\n", attempts);
+                printf("Attempts: %lld\n", attempts);
                 printf("Time taken: %.3f seconds\n", time_spent);
+
+                remove(CHECKPOINT_FILE); // delete checkpoint
                 return;
             }
         }
     }
 
     printf("Password not found\n");
-}
-
-int main() {
-    char password[MAX_LEN + 1];
-    char charset[100];
-
-    printf("Enter charset (example: abcdef...): ");
-    scanf("%s", charset);
-
-    printf("Enter password (lowercase letters only, max %d): ", MAX_LEN);
-    scanf("%s", password);
-
-    int charsetSize = strlen(charset);
-
-    bruteForce(password, charset, charsetSize);
-
-    return 0;
 }
