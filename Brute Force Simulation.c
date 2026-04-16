@@ -5,6 +5,23 @@
 #define MAX_LEN 6
 #define CHECKPOINT_FILE "checkpoint.txt"
 
+// Convert attempt string to index
+long long attemptToIndex(char *attempt, char *charset, int charsetSize) {
+    long long index = 0;
+    int len = strlen(attempt);
+
+    for (int i = 0; i < len; i++) {
+        char *pos = strchr(charset, attempt[i]);
+        if (!pos) return 0;
+
+        int charIndex = pos - charset;
+        index = index * charsetSize + charIndex;
+    }
+
+    return index;
+}
+
+// Load checkpoint
 long long loadCheckpoint(char *lastAttempt) {
     FILE *file = fopen(CHECKPOINT_FILE, "r");
     long long value = 0;
@@ -46,26 +63,33 @@ void bruteForce(char *target, char *charset, int charsetSize) {
     }
 
     clock_t start = clock();
-    long long currentCount = 0;
+
+    long long startIndex = 0;
+    int resumeLen = 0;
 
     if (lastAttempt[0] != '\0') {
-        printf("Last tried combination: %s\n", lastAttempt);
+        resumeLen = strlen(lastAttempt);
+        startIndex = attemptToIndex(lastAttempt, charset, charsetSize) + 1;
+        printf("Resuming from exact position...\n");
     }
 
     for (int len = 1; len <= targetLen; len++) {
+
         long long limit = 1;
         for (int i = 0; i < len; i++) limit *= charsetSize;
 
-        for (long long i = 0; i < limit; i++) {
+        long long i = 0;
 
-            // Skip tested attempts
-            if (currentCount < attempts) {
-                currentCount++;
-                continue;
-            }
+        // Jump directly if resuming same length
+        if (len == resumeLen) {
+            i = startIndex;
+        }
+
+        for (; i < limit; i++) {
 
             long long temp = i;
 
+            // Generate attempt string
             for (int j = len - 1; j >= 0; j--) {
                 attempt[j] = charset[temp % charsetSize];
                 temp /= charsetSize;
@@ -73,19 +97,19 @@ void bruteForce(char *target, char *charset, int charsetSize) {
             attempt[len] = '\0';
 
             attempts++;
-            currentCount++;
 
             // Save checkpoint every 5000 attempts
             if (attempts % 5000 == 0) {
                 saveCheckpoint(attempts, attempt);
             }
 
-            
+            // Timing
             clock_t now = clock();
             double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
             double speed = attempts / (elapsed > 0 ? elapsed : 1);
             double remaining = (total - attempts) / (speed > 0 ? speed : 1);
 
+            // Live progress
             if (attempts % 2000 == 0) {
                 printf("Progress: %.2f%% | Speed: %.0f/s | ETA: %.1fs | Current: %s\r",
                        (attempts * 100.0) / total,
@@ -105,7 +129,7 @@ void bruteForce(char *target, char *charset, int charsetSize) {
                 printf("Attempts: %lld\n", attempts);
                 printf("Time taken: %.3f seconds\n", time_spent);
 
-                remove(CHECKPOINT_FILE); // delete checkpoint
+                remove(CHECKPOINT_FILE);
                 return;
             }
         }
@@ -115,7 +139,7 @@ void bruteForce(char *target, char *charset, int charsetSize) {
 }
 
 int main() {
-    char target[] = "abc";             
+    char target[] = "abc";
     char charset[] = "abcdefghijklmnopqrstuvwxyz";
     int charsetSize = strlen(charset);
 
