@@ -4,6 +4,7 @@
 
 #define MAX_LEN 6
 #define CHECKPOINT_FILE "checkpoint.txt"
+#define LOG_FILE "log.txt"
 
 // Convert attempt string to index
 long long attemptToIndex(char *attempt, char *charset, int charsetSize) {
@@ -42,6 +43,15 @@ void saveCheckpoint(long long value, char *attempt) {
     FILE *file = fopen(CHECKPOINT_FILE, "w");
     if (file) {
         fprintf(file, "%lld %s", value, attempt);
+        fclose(file);
+    }
+}
+
+// NEW: log attempts
+void logAttempt(char *attempt) {
+    FILE *file = fopen(LOG_FILE, "a");
+    if (file) {
+        fprintf(file, "%s\n", attempt);
         fclose(file);
     }
 }
@@ -97,6 +107,11 @@ void bruteForce(char *target, char *charset, int charsetSize) {
             attempt[len] = '\0';
 
             attempts++;
+
+            // NEW: log every 1000 attempts
+            if (attempts % 1000 == 0) {
+                logAttempt(attempt);
+            }
 
             // Save checkpoint every 5000 attempts
             if (attempts % 5000 == 0) {
