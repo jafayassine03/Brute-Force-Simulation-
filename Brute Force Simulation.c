@@ -5,6 +5,7 @@
 #define MAX_LEN 6
 #define CHECKPOINT_FILE "checkpoint.txt"
 #define LOG_FILE "log.txt"
+#define SESSION_FILE "session.txt"
 
 // Convert attempt string to index
 long long attemptToIndex(char *attempt, char *charset, int charsetSize) {
@@ -56,9 +57,36 @@ void logAttempt(char *attempt) {
     }
 }
 
+// NEW FEATURE: Save session info
+void saveSession(long long attempts, double elapsed) {
+    FILE *file = fopen(SESSION_FILE, "w");
+    if (file) {
+        time_t now = time(NULL);
+        fprintf(file, "Attempts: %lld\nElapsed: %.2f seconds\nLast run: %s",
+                attempts, elapsed, ctime(&now));
+        fclose(file);
+    }
+}
+
+// NEW FEATURE: Load session info
+void loadSession() {
+    FILE *file = fopen(SESSION_FILE, "r");
+    if (file) {
+        char buffer[256];
+        printf("Previous session summary:\n");
+        while (fgets(buffer, sizeof(buffer), file)) {
+            printf("%s", buffer);
+        }
+        fclose(file);
+        printf("\n");
+    }
+}
+
 void bruteForce(char *target, char *charset, int charsetSize) {
     char attempt[MAX_LEN + 1];
     char lastAttempt[MAX_LEN + 1];
+
+    loadSession(); // NEW FEATURE: show last session summary
 
     long long attempts = loadCheckpoint(lastAttempt);
     long long total = 0;
@@ -134,7 +162,7 @@ void bruteForce(char *target, char *charset, int charsetSize) {
                 fflush(stdout);
             }
 
-            // Check password
+            // Check passwors
             if (strcmp(attempt, target) == 0) {
                 clock_t end = clock();
                 double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
@@ -145,12 +173,16 @@ void bruteForce(char *target, char *charset, int charsetSize) {
                 printf("Time taken: %.3f seconds\n", time_spent);
 
                 remove(CHECKPOINT_FILE);
+                saveSession(attempts, time_spent); 
                 return;
             }
         }
     }
 
     printf("\nPassword not found\n");
+    clock_t end = clock();
+    double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+    saveSession(attempts, time_spent); 
 }
 
 int main() {
@@ -162,3 +194,4 @@ int main() {
 
     return 0;
 }
+
