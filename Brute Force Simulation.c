@@ -6,8 +6,8 @@
 #define CHECKPOINT_FILE "checkpoint.txt"
 #define LOG_FILE "log.txt"
 #define SESSION_FILE "session.txt"
+#define MAX_ATTEMPTS 100000000
 
-// Convert attempt string to index
 long long attemptToIndex(char *attempt, char *charset, int charsetSize) {
     long long index = 0;
     int len = strlen(attempt);
@@ -23,7 +23,6 @@ long long attemptToIndex(char *attempt, char *charset, int charsetSize) {
     return index;
 }
 
-// Load checkpoint
 long long loadCheckpoint(char *lastAttempt) {
     FILE *file = fopen(CHECKPOINT_FILE, "r");
     long long value = 0;
@@ -39,7 +38,6 @@ long long loadCheckpoint(char *lastAttempt) {
     return value;
 }
 
-// Save checkpoint
 void saveCheckpoint(long long value, char *attempt) {
     FILE *file = fopen(CHECKPOINT_FILE, "w");
     if (file) {
@@ -48,7 +46,6 @@ void saveCheckpoint(long long value, char *attempt) {
     }
 }
 
-// NEW: log attempts
 void logAttempt(char *attempt) {
     FILE *file = fopen(LOG_FILE, "a");
     if (file) {
@@ -57,7 +54,6 @@ void logAttempt(char *attempt) {
     }
 }
 
-// NEW FEATURE: Save session info
 void saveSession(long long attempts, double elapsed) {
     FILE *file = fopen(SESSION_FILE, "w");
     if (file) {
@@ -68,7 +64,6 @@ void saveSession(long long attempts, double elapsed) {
     }
 }
 
-// NEW FEATURE: Load session info
 void loadSession() {
     FILE *file = fopen(SESSION_FILE, "r");
     if (file) {
@@ -86,14 +81,13 @@ void bruteForce(char *target, char *charset, int charsetSize) {
     char attempt[MAX_LEN + 1];
     char lastAttempt[MAX_LEN + 1];
 
-    loadSession(); // NEW FEATURE: show last session summary
+    loadSession();
 
     long long attempts = loadCheckpoint(lastAttempt);
     long long total = 0;
 
     int targetLen = strlen(target);
 
-    // Calculate total combinations
     for (int len = 1; len <= targetLen; len++) {
         long long t = 1;
         for (int i = 0; i < len; i++) t *= charsetSize;
@@ -118,16 +112,23 @@ void bruteForce(char *target, char *charset, int charsetSize) {
 
         long long i = 0;
 
-        // Jump directly if resuming same length
         if (len == resumeLen) {
             i = startIndex;
         }
 
         for (; i < limit; i++) {
 
+            if (attempts >= MAX_ATTEMPTS) {
+                printf("\nMax attempts reached. Stopping...\n");
+                saveCheckpoint(attempts, attempt);
+                clock_t end = clock();
+                double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+                saveSession(attempts, time_spent);
+                return;
+            }
+
             long long temp = i;
 
-            // Generate attempt string
             for (int j = len - 1; j >= 0; j--) {
                 attempt[j] = charset[temp % charsetSize];
                 temp /= charsetSize;
@@ -136,23 +137,19 @@ void bruteForce(char *target, char *charset, int charsetSize) {
 
             attempts++;
 
-            // NEW: log every 1000 attempts
             if (attempts % 1000 == 0) {
                 logAttempt(attempt);
             }
 
-            // Save checkpoint every 5000 attempts
             if (attempts % 5000 == 0) {
                 saveCheckpoint(attempts, attempt);
             }
 
-            // Timing
             clock_t now = clock();
             double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
             double speed = attempts / (elapsed > 0 ? elapsed : 1);
             double remaining = (total - attempts) / (speed > 0 ? speed : 1);
 
-            // Live progress
             if (attempts % 2000 == 0) {
                 printf("Progress: %.2f%% | Speed: %.0f/s | ETA: %.1fs | Current: %s\r",
                        (attempts * 100.0) / total,
@@ -162,7 +159,6 @@ void bruteForce(char *target, char *charset, int charsetSize) {
                 fflush(stdout);
             }
 
-            // Check passwors
             if (strcmp(attempt, target) == 0) {
                 clock_t end = clock();
                 double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
@@ -173,7 +169,7 @@ void bruteForce(char *target, char *charset, int charsetSize) {
                 printf("Time taken: %.3f seconds\n", time_spent);
 
                 remove(CHECKPOINT_FILE);
-                saveSession(attempts, time_spent); 
+                saveSession(attempts, time_spent);
                 return;
             }
         }
@@ -182,7 +178,7 @@ void bruteForce(char *target, char *charset, int charsetSize) {
     printf("\nPassword not found\n");
     clock_t end = clock();
     double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
-    saveSession(attempts, time_spent); 
+    saveSession(attempts, time_spent);
 }
 
 int main() {
@@ -194,4 +190,3 @@ int main() {
 
     return 0;
 }
-
