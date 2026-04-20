@@ -6,6 +6,7 @@
 #define CHECKPOINT_FILE "checkpoint.txt"
 #define LOG_FILE "log.txt"
 #define SESSION_FILE "session.txt"
+#define PROGRESS_FILE "progress.txt"
 #define MAX_ATTEMPTS 100000000
 
 long long attemptToIndex(char *attempt, char *charset, int charsetSize) {
@@ -77,6 +78,16 @@ void loadSession() {
     }
 }
 
+void logProgress(long long attempts, char *attempt) {
+    FILE *file = fopen(PROGRESS_FILE, "a");
+    if (file) {
+        time_t now = time(NULL);
+        fprintf(file, "Attempt #%lld | Current: %s | Time: %s",
+                attempts, attempt, ctime(&now));
+        fclose(file);
+    }
+}
+
 void bruteForce(char *target, char *charset, int charsetSize) {
     char attempt[MAX_LEN + 1];
     char lastAttempt[MAX_LEN + 1];
@@ -145,6 +156,10 @@ void bruteForce(char *target, char *charset, int charsetSize) {
                 saveCheckpoint(attempts, attempt);
             }
 
+            if (attempts % 10000 == 0) {
+                logProgress(attempts, attempt);
+            }
+
             clock_t now = clock();
             double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
             double speed = attempts / (elapsed > 0 ? elapsed : 1);
@@ -190,3 +205,4 @@ int main() {
 
     return 0;
 }
+
