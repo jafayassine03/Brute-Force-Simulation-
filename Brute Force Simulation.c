@@ -88,7 +88,19 @@ void logProgress(long long attempts, char *attempt) {
     }
 }
 
-void bruteForce(char *target, char *charset, int charsetSize) {
+void resetProgress() {
+    remove(CHECKPOINT_FILE);
+    remove(LOG_FILE);
+    remove(SESSION_FILE);
+    remove(PROGRESS_FILE);
+    printf("All previous progress, checkpoints, and logs have been reset.\n");
+}
+
+void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
+    if (freshStart) {
+        resetProgress();
+    }
+
     char attempt[MAX_LEN + 1];
     char lastAttempt[MAX_LEN + 1];
 
@@ -200,9 +212,9 @@ int main() {
     char target[] = "abc";
     char charset[] = "abcdefghijklmnopqrstuvwxyz";
     int charsetSize = strlen(charset);
+    int freshStart = 0;
 
-    bruteForce(target, charset, charsetSize);
+    bruteForce(target, charset, charsetSize, freshStart);
 
     return 0;
 }
-
