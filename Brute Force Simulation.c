@@ -96,6 +96,25 @@ void resetProgress() {
     printf("All previous progress, checkpoints, and logs have been reset.\n");
 }
 
+void exportReport(long long attempts, double time_spent, char *found_password, int found) {
+    FILE *file = fopen("report.txt", "w");
+    if (file) {
+        time_t now = time(NULL);
+        fprintf(file, "=== Brute Force Execution Report ===\n");
+        fprintf(file, "Timestamp: %s", ctime(&now));
+        fprintf(file, "Total Attempts: %lld\n", attempts);
+        fprintf(file, "Time Spent: %.3f seconds\n", time_spent);
+        if (found) {
+            fprintf(file, "Status: SUCCESS\n");
+            fprintf(file, "Recovered Password: %s\n", found_password);
+        } else {
+            fprintf(file, "Status: FAILED / STOPPED\n");
+        }
+        fclose(file);
+        printf("\nExecution report successfully exported to report.txt\n");
+    }
+}
+
 void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
     if (freshStart) {
         resetProgress();
@@ -147,6 +166,7 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                 clock_t end = clock();
                 double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
                 saveSession(attempts, time_spent);
+                exportReport(attempts, time_spent, NULL, 0);
                 return;
             }
 
@@ -197,6 +217,7 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
 
                 remove(CHECKPOINT_FILE);
                 saveSession(attempts, time_spent);
+                exportReport(attempts, time_spent, attempt, 1);
                 return;
             }
         }
@@ -206,6 +227,7 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
     clock_t end = clock();
     double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
     saveSession(attempts, time_spent);
+    exportReport(attempts, time_spent, NULL, 0);
 }
 
 int main() {
