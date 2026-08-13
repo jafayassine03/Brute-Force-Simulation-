@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h>
 
 #define MAX_LEN 6
 #define CHECKPOINT_FILE "checkpoint.txt"
@@ -115,6 +116,11 @@ void exportReport(long long attempts, double time_spent, char *found_password, i
     }
 }
 
+void playBeepSound() {
+    printf("\a");
+    fflush(stdout);
+}
+
 void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
     if (freshStart) {
         resetProgress();
@@ -209,6 +215,8 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
             if (strcmp(attempt, target) == 0) {
                 clock_t end = clock();
                 double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+
+                playBeepSound();
 
                 printf("\n\nPASSWORD FOUND!\n");
                 printf("Password: %s\n", attempt);
