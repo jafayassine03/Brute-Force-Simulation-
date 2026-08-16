@@ -2,6 +2,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
+#include <conio.h>
 
 #define MAX_LEN 6
 #define CHECKPOINT_FILE "checkpoint.txt"
@@ -165,6 +166,19 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
         }
 
         for (; i < limit; i++) {
+
+            if (_kbhit()) {
+                char c = _getch();
+                if (c == 'p' || c == 'P') {
+                    printf("\nPause requested. Saving checkpoint...\n");
+                    saveCheckpoint(attempts, attempt);
+                    clock_t end = clock();
+                    double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+                    saveSession(attempts, time_spent);
+                    exportReport(attempts, time_spent, NULL, 0);
+                    return;
+                }
+            }
 
             if (attempts >= MAX_ATTEMPTS) {
                 printf("\nMax attempts reached. Stopping...\n");
