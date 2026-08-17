@@ -9,6 +9,7 @@
 #define LOG_FILE "log.txt"
 #define SESSION_FILE "session.txt"
 #define PROGRESS_FILE "progress.txt"
+#define LIVE_PROGRESS_FILE "live_progress.txt"
 #define MAX_ATTEMPTS 100000000
 
 long long attemptToIndex(char *attempt, char *charset, int charsetSize) {
@@ -95,6 +96,7 @@ void resetProgress() {
     remove(LOG_FILE);
     remove(SESSION_FILE);
     remove(PROGRESS_FILE);
+    remove(LIVE_PROGRESS_FILE);
     printf("All previous progress, checkpoints, and logs have been reset.\n");
 }
 
@@ -120,6 +122,15 @@ void exportReport(long long attempts, double time_spent, char *found_password, i
 void playBeepSound() {
     printf("\a");
     fflush(stdout);
+}
+
+void writeLiveProgress(long long attempts, double percent, double speed, double remaining, char *attempt) {
+    FILE *file = fopen(LIVE_PROGRESS_FILE, "w");
+    if (file) {
+        fprintf(file, "Attempts: %lld\nProgress: %.2f%%\nSpeed: %.0f/s\nETA: %.1fs\nCurrent: %s\n",
+                attempts, percent, speed, remaining, attempt);
+        fclose(file);
+    }
 }
 
 void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
@@ -226,6 +237,10 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                 fflush(stdout);
             }
 
+            if (attempts % 20000 == 0) {
+                writeLiveProgress(attempts, (attempts * 100.0) / total, speed, remaining, attempt);
+            }
+
             if (strcmp(attempt, target) == 0) {
                 clock_t end = clock();
                 double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
@@ -255,10 +270,4 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
 int main() {
     char target[] = "abc";
     char charset[] = "abcdefghijklmnopqrstuvwxyz";
-    int charsetSize = strlen(charset);
-    int freshStart = 0;
-
-    bruteForce(target, charset, charsetSize, freshStart);
-
-    return 0;
-}
+    int charsetSize = strlen
