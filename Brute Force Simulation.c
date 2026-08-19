@@ -189,6 +189,15 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                     exportReport(attempts, time_spent, NULL, 0);
                     return;
                 }
+                if (c == 'x' || c == 'X') {
+                    printf("\nStop requested by user. Saving checkpoint...\n");
+                    saveCheckpoint(attempts, attempt);
+                    clock_t end = clock();
+                    double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+                    saveSession(attempts, time_spent);
+                    exportReport(attempts, time_spent, NULL, 0);
+                    return;
+                }
             }
 
             if (attempts >= MAX_ATTEMPTS) {
@@ -258,16 +267,3 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                 return;
             }
         }
-    }
-
-    printf("\nPassword not found\n");
-    clock_t end = clock();
-    double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
-    saveSession(attempts, time_spent);
-    exportReport(attempts, time_spent, NULL, 0);
-}
-
-int main() {
-    char target[] = "abc";
-    char charset[] = "abcdefghijklmnopqrstuvwxyz";
-    int charsetSize = strlen
