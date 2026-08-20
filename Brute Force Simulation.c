@@ -72,11 +72,23 @@ void loadSession() {
     FILE *file = fopen(SESSION_FILE, "r");
     if (file) {
         char buffer[256];
+        time_t lastTime = 0;
         printf("Previous session summary:\n");
         while (fgets(buffer, sizeof(buffer), file)) {
             printf("%s", buffer);
+            if (strstr(buffer, "Last run:")) {
+                struct tm tm;
+                char *timeStr = strchr(buffer, ':') + 2;
+                strptime(timeStr, "%a %b %d %H:%M:%S %Y", &tm);
+                lastTime = mktime(&tm);
+            }
         }
         fclose(file);
+        if (lastTime > 0) {
+            time_t now = time(NULL);
+            double diff = difftime(now, lastTime);
+            printf("Resuming after %.0f seconds since last session.\n", diff);
+        }
         printf("\n");
     }
 }
@@ -166,7 +178,6 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
     }
 
     for (int len = 1; len <= targetLen; len++) {
-
         long long limit = 1;
         for (int i = 0; i < len; i++) limit *= charsetSize;
 
@@ -224,46 +235,3 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                 logAttempt(attempt);
             }
 
-            if (attempts % 5000 == 0) {
-                saveCheckpoint(attempts, attempt);
-            }
-
-            if (attempts % 10000 == 0) {
-                logProgress(attempts, attempt);
-            }
-
-            clock_t now = clock();
-            double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
-            double speed = attempts / (elapsed > 0 ? elapsed : 1);
-            double remaining = (total - attempts) / (speed > 0 ? speed : 1);
-
-            if (attempts % 2000 == 0) {
-                printf("Progress: %.2f%% | Speed: %.0f/s | ETA: %.1fs | Current: %s\r",
-                       (attempts * 100.0) / total,
-                       speed,
-                       remaining,
-                       attempt);
-                fflush(stdout);
-            }
-
-            if (attempts % 20000 == 0) {
-                writeLiveProgress(attempts, (attempts * 100.0) / total, speed, remaining, attempt);
-            }
-
-            if (strcmp(attempt, target) == 0) {
-                clock_t end = clock();
-                double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
-
-                playBeepSound();
-
-                printf("\n\nPASSWORD FOUND!\n");
-                printf("Password: %s\n", attempt);
-                printf("Attempts: %lld\n", attempts);
-                printf("Time taken: %.3f seconds\n", time_spent);
-
-                remove(CHECKPOINT_FILE);
-                saveSession(attempts, time_spent);
-                exportReport(attempts, time_spent, attempt, 1);
-                return;
-            }
-        }
