@@ -15,22 +15,18 @@
 long long attemptToIndex(char *attempt, char *charset, int charsetSize) {
     long long index = 0;
     int len = strlen(attempt);
-
     for (int i = 0; i < len; i++) {
         char *pos = strchr(charset, attempt[i]);
         if (!pos) return 0;
-
         int charIndex = pos - charset;
         index = index * charsetSize + charIndex;
     }
-
     return index;
 }
 
 long long loadCheckpoint(char *lastAttempt) {
     FILE *file = fopen(CHECKPOINT_FILE, "r");
     long long value = 0;
-
     if (file) {
         fscanf(file, "%lld %s", &value, lastAttempt);
         fclose(file);
@@ -38,7 +34,6 @@ long long loadCheckpoint(char *lastAttempt) {
     } else {
         lastAttempt[0] = '\0';
     }
-
     return value;
 }
 
@@ -149,46 +144,33 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
     if (freshStart) {
         resetProgress();
     }
-
     char attempt[MAX_LEN + 1];
     char lastAttempt[MAX_LEN + 1];
-
     loadSession();
-
     long long attempts = loadCheckpoint(lastAttempt);
     long long total = 0;
-
     int targetLen = strlen(target);
-
     for (int len = 1; len <= targetLen; len++) {
         long long t = 1;
         for (int i = 0; i < len; i++) t *= charsetSize;
         total += t;
     }
-
     clock_t start = clock();
-
     long long startIndex = 0;
     int resumeLen = 0;
-
     if (lastAttempt[0] != '\0') {
         resumeLen = strlen(lastAttempt);
         startIndex = attemptToIndex(lastAttempt, charset, charsetSize) + 1;
         printf("Resuming from exact position...\n");
     }
-
     for (int len = 1; len <= targetLen; len++) {
         long long limit = 1;
         for (int i = 0; i < len; i++) limit *= charsetSize;
-
         long long i = 0;
-
         if (len == resumeLen) {
             i = startIndex;
         }
-
         for (; i < limit; i++) {
-
             if (_kbhit()) {
                 char c = _getch();
                 if (c == 'p' || c == 'P') {
@@ -209,8 +191,15 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                     exportReport(attempts, time_spent, NULL, 0);
                     return;
                 }
+                if (c == 's' || c == 'S') {
+                    printf("\nManual save requested.\n");
+                    saveCheckpoint(attempts, attempt);
+                    clock_t now = clock();
+                    double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
+                    saveSession(attempts, elapsed);
+                    writeLiveProgress(attempts, (attempts * 100.0) / total, attempts / (elapsed > 0 ? elapsed : 1), (total - attempts) / (attempts / (elapsed > 0 ? elapsed : 1)), attempt);
+                }
             }
-
             if (attempts >= MAX_ATTEMPTS) {
                 printf("\nMax attempts reached. Stopping...\n");
                 saveCheckpoint(attempts, attempt);
@@ -220,18 +209,23 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                 exportReport(attempts, time_spent, NULL, 0);
                 return;
             }
-
             long long temp = i;
-
             for (int j = len - 1; j >= 0; j--) {
                 attempt[j] = charset[temp % charsetSize];
                 temp /= charsetSize;
             }
             attempt[len] = '\0';
-
             attempts++;
-
             if (attempts % 1000 == 0) {
                 logAttempt(attempt);
             }
-
+            if (attempts % 5000 == 0) {
+                saveCheckpoint(attempts, attempt);
+            }
+            if (attempts % 10000 == 0) {
+                logProgress(attempts, attempt);
+            }
+            clock_t now = clock();
+            double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
+            double speed = attempts / (elapsed > 0 ? elapsed : 1);
+            double remaining = (total - attempts) / (speed > 0 ? speed : 1);
