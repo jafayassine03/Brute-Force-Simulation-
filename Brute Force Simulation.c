@@ -10,6 +10,7 @@
 #define SESSION_FILE "session.txt"
 #define PROGRESS_FILE "progress.txt"
 #define LIVE_PROGRESS_FILE "live_progress.txt"
+#define PERCENT_LOG_FILE "percent_log.txt"
 #define MAX_ATTEMPTS 100000000
 
 long long attemptToIndex(char *attempt, char *charset, int charsetSize) {
@@ -104,6 +105,7 @@ void resetProgress() {
     remove(SESSION_FILE);
     remove(PROGRESS_FILE);
     remove(LIVE_PROGRESS_FILE);
+    remove(PERCENT_LOG_FILE);
     printf("All previous progress, checkpoints, and logs have been reset.\n");
 }
 
@@ -136,6 +138,14 @@ void writeLiveProgress(long long attempts, double percent, double speed, double 
     if (file) {
         fprintf(file, "Attempts: %lld\nProgress: %.2f%%\nSpeed: %.0f/s\nETA: %.1fs\nCurrent: %s\n",
                 attempts, percent, speed, remaining, attempt);
+        fclose(file);
+    }
+}
+
+void logPercent(long long attempts, double percent) {
+    FILE *file = fopen(PERCENT_LOG_FILE, "a");
+    if (file) {
+        fprintf(file, "Attempts: %lld | Progress: %.2f%%\n", attempts, percent);
         fclose(file);
     }
 }
@@ -222,10 +232,4 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
             if (attempts % 5000 == 0) {
                 saveCheckpoint(attempts, attempt);
             }
-            if (attempts % 10000 == 0) {
-                logProgress(attempts, attempt);
-            }
-            clock_t now = clock();
-            double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
-            double speed = attempts / (elapsed > 0 ? elapsed : 1);
-            double remaining = (total - attempts) / (speed > 0 ? speed : 1);
+            if (attempts % 10000 == 0
