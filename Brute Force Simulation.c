@@ -11,6 +11,7 @@
 #define PROGRESS_FILE "progress.txt"
 #define LIVE_PROGRESS_FILE "live_progress.txt"
 #define PERCENT_LOG_FILE "percent_log.txt"
+#define SNAPSHOT_FILE "snapshot.txt"
 #define MAX_ATTEMPTS 100000000
 
 long long attemptToIndex(char *attempt, char *charset, int charsetSize) {
@@ -106,6 +107,7 @@ void resetProgress() {
     remove(PROGRESS_FILE);
     remove(LIVE_PROGRESS_FILE);
     remove(PERCENT_LOG_FILE);
+    remove(SNAPSHOT_FILE);
     printf("All previous progress, checkpoints, and logs have been reset.\n");
 }
 
@@ -146,6 +148,15 @@ void logPercent(long long attempts, double percent) {
     FILE *file = fopen(PERCENT_LOG_FILE, "a");
     if (file) {
         fprintf(file, "Attempts: %lld | Progress: %.2f%%\n", attempts, percent);
+        fclose(file);
+    }
+}
+
+void logSnapshot(long long attempts, double percent, double speed, double remaining, char *attempt) {
+    FILE *file = fopen(SNAPSHOT_FILE, "a");
+    if (file) {
+        fprintf(file, "Snapshot - Attempts: %lld | Progress: %.2f%% | Speed: %.0f/s | ETA: %.1fs | Current: %s\n",
+                attempts, percent, speed, remaining, attempt);
         fclose(file);
     }
 }
@@ -217,19 +228,4 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                 double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
                 saveSession(attempts, time_spent);
                 exportReport(attempts, time_spent, NULL, 0);
-                return;
-            }
-            long long temp = i;
-            for (int j = len - 1; j >= 0; j--) {
-                attempt[j] = charset[temp % charsetSize];
-                temp /= charsetSize;
-            }
-            attempt[len] = '\0';
-            attempts++;
-            if (attempts % 1000 == 0) {
-                logAttempt(attempt);
-            }
-            if (attempts % 5000 == 0) {
-                saveCheckpoint(attempts, attempt);
-            }
-            if (attempts % 10000 == 0
+                return
