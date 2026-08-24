@@ -220,12 +220,14 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                     saveSession(attempts, elapsed);
                     writeLiveProgress(attempts, (attempts * 100.0) / total, attempts / (elapsed > 0 ? elapsed : 1), (total - attempts) / (attempts / (elapsed > 0 ? elapsed : 1)), attempt);
                 }
+                if (c == 'r' || c == 'R') {
+                    printf("\nInstant report export requested.\n");
+                    clock_t now = clock();
+                    double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
+                    exportReport(attempts, elapsed, NULL, 0);
+                }
             }
             if (attempts >= MAX_ATTEMPTS) {
                 printf("\nMax attempts reached. Stopping...\n");
                 saveCheckpoint(attempts, attempt);
-                clock_t end = clock();
-                double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
-                saveSession(attempts, time_spent);
-                exportReport(attempts, time_spent, NULL, 0);
-                return
+                clock
