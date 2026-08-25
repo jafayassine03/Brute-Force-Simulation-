@@ -226,8 +226,6 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                     double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
                     exportReport(attempts, elapsed, NULL, 0);
                 }
-            }
-            if (attempts >= MAX_ATTEMPTS) {
-                printf("\nMax attempts reached. Stopping...\n");
-                saveCheckpoint(attempts, attempt);
-                clock
+                if (c == 'd' || c == 'D') {
+                    clock_t now = clock();
+                    double elapsed = (double)(
