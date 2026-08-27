@@ -228,4 +228,4 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                 }
                 if (c == 'd' || c == 'D') {
                     clock_t now = clock();
-                    double elapsed = (double)(
+                    double elapsed = (double)(now - start) / CLOCKS
