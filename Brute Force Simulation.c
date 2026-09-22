@@ -161,6 +161,12 @@ void logSnapshot(long long attempts, double percent, double speed, double remain
     }
 }
 
+void displayDashboard(long long attempts, double percent, double speed, double remaining, char *attempt) {
+    printf("\r[=== DASHBOARD ===] Attempts: %lld | Progress: %.2f%% | Speed: %.0f/s | ETA: %.1fs | Current: %s    ", 
+           attempts, percent, speed, remaining, attempt);
+    fflush(stdout);
+}
+
 void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
     if (freshStart) {
         resetProgress();
@@ -192,6 +198,35 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
             i = startIndex;
         }
         for (; i < limit; i++) {
+            long long temp = i;
+            for (int pos = len - 1; pos >= 0; pos--) {
+                attempt[pos] = charset[temp % charsetSize];
+                temp /= charsetSize;
+            }
+            attempt[len] = '\0';
+            attempts++;
+
+            if (attempts % 1000 == 0) {
+                clock_t now = clock();
+                double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
+                double speed = elapsed > 0 ? attempts / elapsed : 1;
+                double percent = (attempts * 100.0) / total;
+                double remaining = speed > 0 ? (total - attempts) / speed : 0;
+                writeLiveProgress(attempts, percent, speed, remaining, attempt);
+                displayDashboard(attempts, percent, speed, remaining, attempt);
+            }
+
+            if (strcmp(attempt, target) == 0) {
+                clock_t end = clock();
+                double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+                printf("\nPassword found: %s in %.3f seconds (%lld attempts)\n", attempt, time_spent, attempts);
+                playBeepSound();
+                saveCheckpoint(attempts, attempt);
+                saveSession(attempts, time_spent);
+                exportReport(attempts, time_spent, attempt, 1);
+                return;
+            }
+
             if (_kbhit()) {
                 char c = _getch();
                 if (c == 'p' || c == 'P') {
@@ -228,4 +263,14 @@ void bruteForce(char *target, char *charset, int charsetSize, int freshStart) {
                 }
                 if (c == 'e' || c == 'E') {
                     clock_t now = clock();
-                    double elapsed = (double)(now - start) / CLOCKS_PER_SEC
+                    double elapsed = (double)(now - start) / CLOCKS_PER_SEC;
+                    exportReport(attempts, elapsed, NULL, 0);
+                    exit(0);
+                }
+            }
+        }
+    }
+    clock_t end = clock();
+    double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+    exportReport(attempts, time_spent, NULL, 0);
+}
